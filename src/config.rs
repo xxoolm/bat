@@ -1,9 +1,11 @@
 use crate::line_range::{HighlightedLineRanges, LineRanges};
+use crate::nonprintable_notation::{BinaryBehavior, NonprintableNotation};
 #[cfg(feature = "paging")]
 use crate::paging::PagingMode;
 use crate::style::StyleComponents;
 use crate::syntax_mapping::SyntaxMapping;
 use crate::wrapping::WrappingMode;
+use crate::StripAnsiMode;
 
 #[derive(Debug, Clone)]
 pub enum VisibleLines {
@@ -38,6 +40,12 @@ pub struct Config<'a> {
 
     /// Whether or not to show/replace non-printable characters like space, tab and newline.
     pub show_nonprintable: bool,
+
+    /// The configured notation for non-printable characters
+    pub nonprintable_notation: NonprintableNotation,
+
+    /// How to treat binary content
+    pub binary: BinaryBehavior,
 
     /// The character width of the terminal
     pub term_width: usize,
@@ -86,6 +94,19 @@ pub struct Config<'a> {
     /// Whether or not to allow custom assets. If this is false or if custom assets (a.k.a.
     /// cached assets) are not available, assets from the binary will be used instead.
     pub use_custom_assets: bool,
+
+    // Whether or not to use $LESSOPEN if set
+    #[cfg(feature = "lessopen")]
+    pub use_lessopen: bool,
+
+    // Weather or not to set terminal title when using a pager
+    pub set_terminal_title: bool,
+
+    /// The maximum number of consecutive empty lines to display
+    pub squeeze_lines: Option<usize>,
+
+    // Weather or not to set terminal title when using a pager
+    pub strip_ansi: StripAnsiMode,
 }
 
 #[cfg(all(feature = "minimal-application", feature = "paging"))]

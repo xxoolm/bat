@@ -9,6 +9,13 @@ if ! command -v hyperfine > /dev/null 2>&1; then
 	exit 1
 fi
 
+# Check that jq is installed.
+if ! command -v jq > /dev/null 2>&1; then
+	echo "'jq' does not seem to be installed."
+	echo "You can get it here: https://jqlang.github.io/jq/download/"
+	exit 1
+fi
+
 # Check that python3 is installed.
 if ! command -v python3 > /dev/null 2>&1; then
 	echo "'python3' does not seem to be installed."
@@ -49,7 +56,8 @@ REPORT="$RESULT_DIR/report.md"
 TARGET_DIR="$(get_cargo_target_dir)"
 TARGET_RELEASE="${TARGET_DIR}/release/bat"
 
-WARMUP_COUNT=3
+: ${WARMUP_COUNT:=3}
+: ${RUN_COUNT:=10}
 
 # Determine which target to benchmark.
 BAT=''
@@ -88,16 +96,28 @@ hyperfine \
 	"$(printf "%q" "$BAT") --no-config" \
 	--command-name "bat" \
 	--warmup "$WARMUP_COUNT" \
+    --runs "$RUN_COUNT" \
     --export-markdown "$RESULT_DIR/startup-time.md" \
     --export-json "$RESULT_DIR/startup-time.json"
 cat "$RESULT_DIR/startup-time.md" >> "$REPORT"
 
 
+heading "Startup time without syntax highlighting"
+hyperfine \
+	"$(printf "%q" "$BAT") --no-config startup-time-src/small-CpuInfo-file.cpuinfo" \
+	--command-name "bat … small-CpuInfo-file.cpuinfo" \
+	--warmup "$WARMUP_COUNT" \
+    --runs "$RUN_COUNT" \
+    --export-markdown "$RESULT_DIR/startup-time-without-syntax-highlighting.md" \
+    --export-json "$RESULT_DIR/startup-time-without-syntax-highlighting.json"
+cat "$RESULT_DIR/startup-time-without-syntax-highlighting.md" >> "$REPORT"
+
 heading "Startup time with syntax highlighting"
 hyperfine \
 	"$(printf "%q" "$BAT") --no-config --color=always startup-time-src/small-CpuInfo-file.cpuinfo" \
-	--command-name "bat … small-CpuInfo-file.cpuinfo" \
+	--command-name "bat … --color=always small-CpuInfo-file.cpuinfo" \
 	--warmup "$WARMUP_COUNT" \
+    --runs "$RUN_COUNT" \
     --export-markdown "$RESULT_DIR/startup-time-with-syntax-highlighting.md" \
     --export-json "$RESULT_DIR/startup-time-with-syntax-highlighting.json"
 cat "$RESULT_DIR/startup-time-with-syntax-highlighting.md" >> "$REPORT"
@@ -108,9 +128,44 @@ hyperfine \
 	"$(printf "%q" "$BAT") --no-config --color=always startup-time-src/small-Markdown-file.md" \
 	--command-name "bat … small-Markdown-file.md" \
 	--warmup "$WARMUP_COUNT" \
+    --runs "$RUN_COUNT" \
     --export-markdown "$RESULT_DIR/startup-time-with-syntax-with-dependencies.md" \
     --export-json "$RESULT_DIR/startup-time-with-syntax-with-dependencies.json"
 cat "$RESULT_DIR/startup-time-with-syntax-with-dependencies.md" >> "$REPORT"
+
+
+heading "Startup time with indeterminant syntax"
+hyperfine \
+	"$(printf "%q" "$BAT") --no-config --color=always startup-time-src/mystery-file" \
+	--shell none \
+	--command-name 'bat … mystery-file' \
+	--warmup "$WARMUP_COUNT" \
+    --runs "$RUN_COUNT" \
+    --export-markdown "$RESULT_DIR/startup-time-with-indeterminant-syntax.md" \
+    --export-json "$RESULT_DIR/startup-time-with-indeterminant-syntax.json"
+cat "$RESULT_DIR/startup-time-with-indeterminant-syntax.md" >> "$REPORT"
+
+heading "Startup time with manually set syntax"
+hyperfine \
+	"$(printf "%q" "$BAT") --no-config --color=always --language=Dockerfile startup-time-src/mystery-file" \
+	--shell none \
+	--command-name 'bat … --language=Dockerfile mystery-file' \
+	--warmup "$WARMUP_COUNT" \
+    --runs "$RUN_COUNT" \
+    --export-markdown "$RESULT_DIR/startup-time-with-manually-set-syntax.md" \
+    --export-json "$RESULT_DIR/startup-time-with-manually-set-syntax.json"
+cat "$RESULT_DIR/startup-time-with-manually-set-syntax.md" >> "$REPORT"
+
+heading "Startup time with mapped syntax"
+hyperfine \
+	"$(printf "%q" "$BAT") --no-config --color=always startup-time-src/Containerfile" \
+	--shell none \
+	--command-name 'bat … Containerfile' \
+	--warmup "$WARMUP_COUNT" \
+    --runs "$RUN_COUNT" \
+    --export-markdown "$RESULT_DIR/startup-time-with-mapped-syntax.md" \
+    --export-json "$RESULT_DIR/startup-time-with-mapped-syntax.json"
+cat "$RESULT_DIR/startup-time-with-mapped-syntax.md" >> "$REPORT"
 
 
 heading "Plain-text speed"
@@ -118,6 +173,7 @@ hyperfine \
 	"$(printf "%q" "$BAT") --no-config --language=txt --style=plain highlighting-speed-src/numpy_test_multiarray.py" \
 	--command-name 'bat … --language=txt numpy_test_multiarray.py' \
 	--warmup "$WARMUP_COUNT" \
+    --runs "$RUN_COUNT" \
     --export-markdown "$RESULT_DIR/plain-text-speed.md" \
     --export-json "$RESULT_DIR/plain-text-speed.json"
 cat "$RESULT_DIR/plain-text-speed.md" >> "$REPORT"
@@ -129,6 +185,7 @@ for wrap in character never; do
 
 		heading "Syntax highlighting speed --wrap=${wrap}: \`$filename\`"
 		hyperfine --warmup "$WARMUP_COUNT" \
+    		--runs "$RUN_COUNT" \
 			"$(printf "%q" "$BAT") --no-config --style=full --color=always --wrap=${wrap} --terminal-width=80 '$SRC'" \
 			--command-name "bat … ${filename}" \
 			--export-markdown "$RESULT_DIR/syntax-highlighting-speed-${filename}.md" \
@@ -143,6 +200,7 @@ hyperfine \
 	"$(printf "%q" "$BAT") --no-config --language=txt --style=plain many-small-files/*.txt" \
 	--command-name 'bat … --language=txt *.txt' \
 	--warmup "$WARMUP_COUNT" \
+    --runs "$RUN_COUNT" \
     --export-markdown "$RESULT_DIR/many-small-files-speed.md" \
     --export-json "$RESULT_DIR/many-small-files-speed.json"
 cat "$RESULT_DIR/many-small-files-speed.md" >> "$REPORT"

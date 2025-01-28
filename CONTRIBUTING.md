@@ -6,21 +6,42 @@ Thank you for considering to contribute to `bat`!
 
 ## Add an entry to the changelog
 
-If your contribution changes the behavior of `bat` (as opposed to a typo-fix
-in the documentation), please update the [`CHANGELOG.md`](CHANGELOG.md) file
-and describe your changes. This makes the release process much easier and
-therefore helps to get your changes into a new `bat` release faster.
+Keeping the [`CHANGELOG.md`](CHANGELOG.md) file up-to-date makes the release
+process much easier and therefore helps to get your changes into a new `bat`
+release faster. However, not every change to the repository requires a
+changelog entry. Below are a few examples of that.
+
+Please update the changelog if your contribution contains changes regarding
+any of the following:
+  - the behavior of `bat`
+  - syntax mappings
+  - syntax definitions
+  - themes
+  - the build system, linting, or CI workflows
+
+A changelog entry is not necessary when:
+  - updating documentation
+  - fixing typos
+
+>[!NOTE]
+> For PRs, a CI workflow verifies that a suitable changelog entry is
+> added. If such an entry is missing, the workflow will fail. If your
+> changes do not need an entry to the changelog (see above), that
+> workflow failure can be disregarded.
+
+
+### Changelog entry format
 
 The top of the `CHANGELOG` contains a *"unreleased"* section with a few
 subsections (Features, Bugfixes, …). Please add your entry to the subsection
 that best describes your change.
 
-Entries follow this format:
+Entries must follow this format:
 ```
 - Short description of what has been changed, see #123 (@user)
 ```
-Here, `#123` is the number of the original issue and/or your pull request.
-Please replace `@user` by your GitHub username.
+Please replace `#123` with the number of your pull request (not issue) and
+`@user` by your GitHub username.
 
 
 ## Development
@@ -33,7 +54,7 @@ section in the README.
 
 Please consider opening a
 [feature request ticket](https://github.com/sharkdp/bat/issues/new?assignees=&labels=feature-request&template=feature_request.md)
-first in order to give us a chance to discuss the feature first.
+first in order to give us a chance to discuss the details and specifics of the potential new feature before you go and build it.
 
 
 ## Adding new syntaxes/languages or themes
@@ -50,12 +71,12 @@ first.
 
 ## Regression tests
 
-You are strongly encouraged to add regression tests. Regression tests are great,
+You are **strongly encouraged** to add regression tests. Regression tests are great,
 not least because they:
 
-* ensure that your contribution will never completely stop working,
+* ensure that your contribution will never completely stop working.
 
-* makes code review easier, because it becomes very clear what the code is
+* makes code reviews easier, because it becomes very clear what the code is
   supposed to do.
 
 For functional changes, you most likely want to add a test to

@@ -1,3 +1,4 @@
+use std::fmt::Write;
 use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 
@@ -79,7 +80,7 @@ fn handle_license(path: &Path) -> Result<Option<String>> {
     } else if license_not_needed_in_acknowledgements(&license_text) {
         Ok(None)
     } else {
-        Err(format!("ERROR: License is of unknown type: {:?}", path).into())
+        Err(format!("ERROR: License is of unknown type: {path:?}").into())
     }
 }
 
@@ -124,7 +125,7 @@ fn append_to_acknowledgements(
     relative_path: &str,
     license_text: &str,
 ) {
-    acknowledgements.push_str(&format!("## {}\n\n{}", relative_path, license_text));
+    write!(acknowledgements, "## {relative_path}\n\n{license_text}").ok();
 
     // Make sure the last char is a newline to not mess up formatting later
     if acknowledgements

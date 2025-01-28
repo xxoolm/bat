@@ -7,6 +7,8 @@ pub enum Error {
     #[error(transparent)]
     Io(#[from] ::std::io::Error),
     #[error(transparent)]
+    Fmt(#[from] ::std::fmt::Error),
+    #[error(transparent)]
     SyntectError(#[from] ::syntect::Error),
     #[error(transparent)]
     SyntectLoadingError(#[from] ::syntect::LoadingError),
@@ -26,6 +28,12 @@ pub enum Error {
     InvalidPagerValueBat,
     #[error("{0}")]
     Msg(String),
+    #[cfg(feature = "lessopen")]
+    #[error(transparent)]
+    VarError(#[from] ::std::env::VarError),
+    #[cfg(feature = "lessopen")]
+    #[error(transparent)]
+    CommandParseError(#[from] ::shell_words::ParseError),
 }
 
 impl From<&'static str> for Error {
@@ -43,7 +51,7 @@ impl From<String> for Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub fn default_error_handler(error: &Error, output: &mut dyn Write) {
-    use ansi_term::Colour::Red;
+    use nu_ansi_term::Color::Red;
 
     match error {
         Error::Io(ref io_error) if io_error.kind() == ::std::io::ErrorKind::BrokenPipe => {

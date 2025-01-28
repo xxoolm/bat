@@ -181,12 +181,12 @@ man 2 select
 
 ## インストール
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/bat-cat.svg)](https://repology.org/project/bat-cat/versions)
+[![Packaging status](https://repology.org/badge/vertical-allrepos/bat-cat.svg?columns=3&exclude_unsupported=1)](https://repology.org/project/bat-cat/versions)
 
 ###  On Ubuntu (`apt` を使用)
 *... や他のDebianベースのLinuxディストリビューション*
 
-Ubuntu Eoan 19.10 または Debian 不安定版 sid 以降の [the Ubuntu `bat` package](https://packages.ubuntu.com/eoan/bat) または [the Debian `bat` package](https://packages.debian.org/sid/bat) からインストールできます:
+[20.04 ("Focal") 以降の Ubuntu](https://packages.ubuntu.com/search?keywords=bat&exact=1) または [2021 年 8 月以降の Debian (Debian 11 - "Bullseye")](https://packages.debian.org/bullseye/bat) では `bat` パッケージが利用できます。
 
 ```bash
 apt install bat
@@ -219,7 +219,7 @@ apk add bat
 
 ###  On Arch Linux
 
-[Arch Linuxの公式リソース](https://www.archlinux.org/packages/community/x86_64/bat/)
+[Arch Linuxの公式リソース](https://www.archlinux.org/packages/extra/x86_64/bat/)
 からインストールできます。
 
 ```bash
@@ -366,7 +366,7 @@ ansible-galaxy install aeimer.install_bat
 ### From source
 
 
-`bat` をソースからビルドしたいならば、Rust 1.51 以上の環境が必要です。
+`bat` をソースからビルドしたいならば、Rust 1.74.0 以上の環境が必要です。
 `cargo` を使用してビルドすることができます:
 
 ```bash

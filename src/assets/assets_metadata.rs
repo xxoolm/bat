@@ -3,11 +3,11 @@ use std::path::Path;
 use std::time::SystemTime;
 
 use semver::Version;
-use serde::{Deserialize, Serialize};
+use serde_derive::{Deserialize, Serialize};
 
 use crate::error::*;
 
-#[derive(Debug, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct AssetsMetadata {
     bat_version: Option<String>,
     creation_time: Option<SystemTime>,

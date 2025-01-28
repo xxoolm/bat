@@ -2,7 +2,6 @@ use std::io::Read;
 use std::path::Path;
 
 use console::Term;
-use syntect::parsing::SyntaxReference;
 
 use crate::{
     assets::HighlightingAssets,
@@ -11,8 +10,8 @@ use crate::{
     error::Result,
     input,
     line_range::{HighlightedLineRanges, LineRange, LineRanges},
-    style::{StyleComponent, StyleComponents},
-    SyntaxMapping, WrappingMode,
+    style::StyleComponent,
+    StripAnsiMode, SyntaxMapping, WrappingMode,
 };
 
 #[cfg(feature = "paging")]
@@ -20,12 +19,19 @@ use crate::paging::PagingMode;
 
 #[derive(Default)]
 struct ActiveStyleComponents {
-    header: bool,
+    header_filename: bool,
+    #[cfg(feature = "git")]
     vcs_modification_markers: bool,
     grid: bool,
     rule: bool,
     line_numbers: bool,
     snip: bool,
+}
+
+#[non_exhaustive]
+pub struct Syntax {
+    pub name: String,
+    pub file_extensions: Vec<String>,
 }
 
 pub struct PrettyPrinter<'a> {
@@ -134,7 +140,7 @@ impl<'a> PrettyPrinter<'a> {
 
     /// Whether to show a header with the file name
     pub fn header(&mut self, yes: bool) -> &mut Self {
-        self.active_style_components.header = yes;
+        self.active_style_components.header_filename = yes;
         self
     }
 
@@ -173,6 +179,15 @@ impl<'a> PrettyPrinter<'a> {
     /// Whether to show "snip" markers between visible line ranges (default: no)
     pub fn snip(&mut self, yes: bool) -> &mut Self {
         self.active_style_components.snip = yes;
+        self
+    }
+
+    /// Whether to remove ANSI escape sequences from the input (default: never)
+    ///
+    /// If `Auto` is used, escape sequences will only be removed when the input
+    /// is not plain text.
+    pub fn strip_ansi(&mut self, mode: StripAnsiMode) -> &mut Self {
+        self.config.strip_ansi = mode;
         self
     }
 
@@ -224,7 +239,15 @@ impl<'a> PrettyPrinter<'a> {
         self
     }
 
-    /// Specify the highlighting theme
+    /// Specify the maximum number of consecutive empty lines to print.
+    pub fn squeeze_empty_lines(&mut self, maximum: Option<usize>) -> &mut Self {
+        self.config.squeeze_lines = maximum;
+        self
+    }
+
+    /// Specify the highlighting theme.
+    /// You can use [`crate::theme::theme`] to pick a theme based on user preferences
+    /// and the terminal's background color.
     pub fn theme(&mut self, theme: impl AsRef<str>) -> &mut Self {
         self.config.theme = theme.as_ref().to_owned();
         self
@@ -240,51 +263,72 @@ impl<'a> PrettyPrinter<'a> {
         self.assets.themes()
     }
 
-    pub fn syntaxes(&self) -> impl Iterator<Item = &SyntaxReference> {
+    pub fn syntaxes(&self) -> impl Iterator<Item = Syntax> + '_ {
         // We always use assets from the binary, which are guaranteed to always
         // be valid, so get_syntaxes() can never fail here
-        self.assets.get_syntaxes().unwrap().iter()
+        self.assets
+            .get_syntaxes()
+            .unwrap()
+            .iter()
+            .filter(|s| !s.hidden)
+            .map(|s| Syntax {
+                name: s.name.clone(),
+                file_extensions: s.file_extensions.clone(),
+            })
     }
 
     /// Pretty-print all specified inputs. This method will "use" all stored inputs.
     /// If you want to call 'print' multiple times, you have to call the appropriate
     /// input_* methods again.
     pub fn print(&mut self) -> Result<bool> {
-        self.config.highlighted_lines =
-            HighlightedLineRanges(LineRanges::from(self.highlighted_lines.clone()));
+        self.print_with_writer(None::<&mut dyn std::fmt::Write>)
+    }
+
+    /// Pretty-print all specified inputs to a specified writer.
+    pub fn print_with_writer<W: std::fmt::Write>(&mut self, writer: Option<W>) -> Result<bool> {
+        let highlight_lines = std::mem::take(&mut self.highlighted_lines);
+        self.config.highlighted_lines = HighlightedLineRanges(LineRanges::from(highlight_lines));
         self.config.term_width = self
             .term_width
             .unwrap_or_else(|| Term::stdout().size().1 as usize);
 
-        let mut style_components = vec![];
+        self.config.style_components.clear();
         if self.active_style_components.grid {
-            style_components.push(StyleComponent::Grid);
+            self.config.style_components.insert(StyleComponent::Grid);
         }
         if self.active_style_components.rule {
-            style_components.push(StyleComponent::Rule);
+            self.config.style_components.insert(StyleComponent::Rule);
         }
-        if self.active_style_components.header {
-            style_components.push(StyleComponent::Header);
+        if self.active_style_components.header_filename {
+            self.config
+                .style_components
+                .insert(StyleComponent::HeaderFilename);
         }
         if self.active_style_components.line_numbers {
-            style_components.push(StyleComponent::LineNumbers);
+            self.config
+                .style_components
+                .insert(StyleComponent::LineNumbers);
         }
         if self.active_style_components.snip {
-            style_components.push(StyleComponent::Snip);
+            self.config.style_components.insert(StyleComponent::Snip);
         }
+        #[cfg(feature = "git")]
         if self.active_style_components.vcs_modification_markers {
-            #[cfg(feature = "git")]
-            style_components.push(StyleComponent::Changes);
+            self.config.style_components.insert(StyleComponent::Changes);
         }
-        self.config.style_components = StyleComponents::new(&style_components);
 
         // Collect the inputs to print
-        let mut inputs: Vec<Input> = vec![];
-        std::mem::swap(&mut inputs, &mut self.inputs);
+        let inputs = std::mem::take(&mut self.inputs);
 
         // Run the controller
         let controller = Controller::new(&self.config, &self.assets);
-        controller.run(inputs.into_iter().map(|i| i.into()).collect())
+
+        // If writer is provided, pass it to the controller, otherwise pass None
+        if let Some(mut w) = writer {
+            controller.run(inputs.into_iter().map(|i| i.into()).collect(), Some(&mut w))
+        } else {
+            controller.run(inputs.into_iter().map(|i| i.into()).collect(), None)
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 #[cfg(feature = "git")]
 use crate::diff::LineChange;
 use crate::printer::{Colors, InteractivePrinter};
-use ansi_term::Style;
+use nu_ansi_term::Style;
 
 #[derive(Debug, Clone)]
 pub(crate) struct DecorationText {
@@ -46,7 +46,7 @@ impl Decoration for LineNumberDecoration {
         _printer: &InteractivePrinter,
     ) -> DecorationText {
         if continuation {
-            if line_number > self.cached_wrap_invalid_at {
+            if line_number >= self.cached_wrap_invalid_at {
                 let new_width = self.cached_wrap.width + 1;
                 return DecorationText {
                     text: self.color.paint(" ".repeat(new_width)).to_string(),
@@ -56,7 +56,7 @@ impl Decoration for LineNumberDecoration {
 
             self.cached_wrap.clone()
         } else {
-            let plain: String = format!("{:4}", line_number);
+            let plain: String = format!("{line_number:4}");
             DecorationText {
                 width: plain.len(),
                 text: self.color.paint(plain).to_string(),

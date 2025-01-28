@@ -53,7 +53,7 @@ impl LineRange {
                     let more_lines = &line_numbers[1][1..]
                         .parse()
                         .map_err(|_| "Invalid character after +")?;
-                    new_range.lower + more_lines
+                    new_range.lower.saturating_add(*more_lines)
                 } else if first_byte == Some(b'-') {
                     // this will prevent values like "-+5" even though "+5" is valid integer
                     if line_numbers[1][1..].bytes().next() == Some(b'+') {
@@ -129,6 +129,13 @@ fn test_parse_plus() {
 }
 
 #[test]
+fn test_parse_plus_overflow() {
+    let range = LineRange::from(&format!("{}:+1", usize::MAX)).expect("Shouldn't fail on test!");
+    assert_eq!(usize::MAX, range.lower);
+    assert_eq!(usize::MAX, range.upper);
+}
+
+#[test]
 fn test_parse_plus_fail() {
     let range = LineRange::from("40:+z");
     assert!(range.is_err());
@@ -168,7 +175,7 @@ fn test_parse_minus_fail() {
     assert!(range.is_err());
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RangeCheckResult {
     // Within one of the given ranges
     InRange,

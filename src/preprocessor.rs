@@ -1,13 +1,18 @@
-use console::AnsiCodeIterator;
+use std::fmt::Write;
+
+use crate::{
+    nonprintable_notation::NonprintableNotation,
+    vscreen::{EscapeSequenceOffsets, EscapeSequenceOffsetsIterator},
+};
 
 /// Expand tabs like an ANSI-enabled expand(1).
 pub fn expand_tabs(line: &str, width: usize, cursor: &mut usize) -> String {
     let mut buffer = String::with_capacity(line.len() * 2);
 
-    for chunk in AnsiCodeIterator::new(line) {
-        match chunk {
-            (text, true) => buffer.push_str(text),
-            (mut text, false) => {
+    for seq in EscapeSequenceOffsetsIterator::new(line) {
+        match seq {
+            EscapeSequenceOffsets::Text { .. } => {
+                let mut text = &line[seq.index_of_start()..seq.index_past_end()];
                 while let Some(index) = text.find('\t') {
                     // Add previous text.
                     if index > 0 {
@@ -18,7 +23,7 @@ pub fn expand_tabs(line: &str, width: usize, cursor: &mut usize) -> String {
                     // Add tab.
                     let spaces = width - (*cursor % width);
                     *cursor += spaces;
-                    buffer.push_str(&*" ".repeat(spaces));
+                    buffer.push_str(&" ".repeat(spaces));
 
                     // Next.
                     text = &text[index + 1..text.len()];
@@ -26,6 +31,10 @@ pub fn expand_tabs(line: &str, width: usize, cursor: &mut usize) -> String {
 
                 *cursor += text.len();
                 buffer.push_str(text);
+            }
+            _ => {
+                // Copy the ANSI escape sequence.
+                buffer.push_str(&line[seq.index_of_start()..seq.index_past_end()])
             }
         }
     }
@@ -47,7 +56,11 @@ fn try_parse_utf8_char(input: &[u8]) -> Option<(char, usize)> {
     decoded.map(|(seq, n)| (seq.chars().next().unwrap(), n))
 }
 
-pub fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
+pub fn replace_nonprintable(
+    input: &[u8],
+    tab_width: usize,
+    nonprintable_notation: NonprintableNotation,
+) -> String {
     let mut output = String::new();
 
     let tab_width = if tab_width == 0 { 4 } else { tab_width };
@@ -77,19 +90,33 @@ pub fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
                 }
                 // line feed
                 '\x0A' => {
-                    output.push_str("␊\x0A");
+                    output.push_str(match nonprintable_notation {
+                        NonprintableNotation::Caret => "^J\x0A",
+                        NonprintableNotation::Unicode => "␊\x0A",
+                    });
                     line_idx = 0;
                 }
-                // carriage return
-                '\x0D' => output.push('␍'),
-                // null
-                '\x00' => output.push('␀'),
-                // bell
-                '\x07' => output.push('␇'),
-                // backspace
-                '\x08' => output.push('␈'),
-                // escape
-                '\x1B' => output.push('␛'),
+                // ASCII control characters
+                '\x00'..='\x1F' => {
+                    let c = u32::from(chr);
+
+                    match nonprintable_notation {
+                        NonprintableNotation::Caret => {
+                            let caret_character = char::from_u32(0x40 + c).unwrap();
+                            write!(output, "^{caret_character}").ok();
+                        }
+
+                        NonprintableNotation::Unicode => {
+                            let replacement_symbol = char::from_u32(0x2400 + c).unwrap();
+                            output.push(replacement_symbol)
+                        }
+                    }
+                }
+                // delete
+                '\x7F' => match nonprintable_notation {
+                    NonprintableNotation::Caret => output.push_str("^?"),
+                    NonprintableNotation::Unicode => output.push('\u{2421}'),
+                },
                 // printable ASCII
                 c if c.is_ascii_alphanumeric()
                     || c.is_ascii_punctuation()
@@ -101,12 +128,33 @@ pub fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
                 c => output.push_str(&c.escape_unicode().collect::<String>()),
             }
         } else {
-            output.push_str(&format!("\\x{:02X}", input[idx]));
+            write!(output, "\\x{:02X}", input[idx]).ok();
             idx += 1;
         }
     }
 
     output
+}
+
+/// Strips ANSI escape sequences from the input.
+pub fn strip_ansi(line: &str) -> String {
+    let mut buffer = String::with_capacity(line.len());
+
+    for seq in EscapeSequenceOffsetsIterator::new(line) {
+        if let EscapeSequenceOffsets::Text { .. } = seq {
+            buffer.push_str(&line[seq.index_of_start()..seq.index_past_end()]);
+        }
+    }
+
+    buffer
+}
+
+#[derive(Debug, PartialEq, Clone, Copy, Default)]
+pub enum StripAnsiMode {
+    #[default]
+    Never,
+    Always,
+    Auto,
 }
 
 #[test]
@@ -151,4 +199,15 @@ fn test_try_parse_utf8_char() {
     assert_eq!(try_parse_utf8_char(&[0xef]), None);
     assert_eq!(try_parse_utf8_char(&[0xef, 0x20]), None);
     assert_eq!(try_parse_utf8_char(&[0xf0, 0xf0]), None);
+}
+
+#[test]
+fn test_strip_ansi() {
+    // The sequence detection is covered by the tests in the vscreen module.
+    assert_eq!(strip_ansi("no ansi"), "no ansi");
+    assert_eq!(strip_ansi("\x1B[33mone"), "one");
+    assert_eq!(
+        strip_ansi("\x1B]1\x07multiple\x1B[J sequences"),
+        "multiple sequences"
+    );
 }

@@ -32,6 +32,16 @@ A special *thank you* goes to our biggest <a href="doc/sponsors.md">sponsors</a>
   <sup>Add Single Sign-On (and more) in minutes instead of months.</sup>
 </a>
 
+<a href="https://www.warp.dev/?utm_source=github&utm_medium=referral&utm_campaign=bat_20231001">
+  <img src="doc/sponsors/warp-logo.png" width="200" alt="Warp">
+  <br>
+  <strong>Warp, the intelligent terminal</strong>
+  <br>
+  <sub>Run commands like a power user with AI and your dev team’s</sub>
+  <br>
+  <sup>knowledge in one fast, intuitive terminal. For MacOS or Linux.</sup>
+</a>
+
 ### Syntax highlighting
 
 `bat` supports syntax highlighting for a large number of programming and markup
@@ -118,7 +128,7 @@ use `bat`s `--color=always` option to force colorized output. You can also use `
 option to restrict the load times for long files:
 
 ```bash
-fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'
+fzf --preview "bat --color=always --style=numbers --line-range=:500 {}"
 ```
 
 For more information, see [`fzf`'s `README`](https://github.com/junegunn/fzf#preview-window).
@@ -194,23 +204,29 @@ bat main.cpp | xclip
 `MANPAGER` environment variable:
 
 ```bash
-export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+export MANPAGER="sh -c 'sed -u -e \"s/\\x1B\[[0-9;]*m//g; s/.\\x08//g\" | bat -p -lman'"
 man 2 select
 ```
 (replace `bat` with `batcat` if you are on Debian or Ubuntu)
 
-It might also be necessary to set `MANROFFOPT="-c"` if you experience
-formatting problems.
-
 If you prefer to have this bundled in a new command, you can also use [`batman`](https://github.com/eth-p/bat-extras/blob/master/doc/batman.md).
 
-Note that the [Manpage syntax](assets/syntaxes/02_Extra/Manpage.sublime-syntax) is developed in this repository and still needs some work.
+> [!WARNING]  
+> This will [not work](https://github.com/sharkdp/bat/issues/1145) out of the box with Mandoc's `man` implementation.
+>
+> Please either use `batman`, or convert the shell script to a [shebang executable](https://en.wikipedia.org/wiki/Shebang_(Unix)) and point `MANPAGER` to that.
 
-Also, note that this will [not work](https://github.com/sharkdp/bat/issues/1145) with Mandocs `man` implementation.
+Note that the [Manpage syntax](assets/syntaxes/02_Extra/Manpage.sublime-syntax) is developed in this repository and still needs some work.
 
 #### `prettier` / `shfmt` / `rustfmt`
 
 The [`prettybat`](https://github.com/eth-p/bat-extras/blob/master/doc/prettybat.md) script is a wrapper that will format code and print it with `bat`.
+
+#### `Warp`
+
+<a href="https://app.warp.dev/drive/folder/-Bat-Warp-Pack-lxhe7HrEwgwpG17mvrFSz1">
+  <img src="doc/sponsors/warp-pack-header.png" alt="Warp">
+</a>
 
 #### Highlighting `--help` messages
 
@@ -228,12 +244,23 @@ help() {
 
 Then you can do `$ help cp` or `$ help git commit`.
 
+When you are using `zsh`, you can also use global aliases to override `-h` and `--help` entirely:
+
+```bash
+alias -g -- -h='-h 2>&1 | bat --language=help --style=plain'
+alias -g -- --help='--help 2>&1 | bat --language=help --style=plain'
+```
+
+This way, you can keep on using `cp --help`, but get colorized help pages.
+
+Be aware that in some cases, `-h` may not be a shorthand of `--help` (for example with `ls`).
+
 Please report any issues with the help syntax in [this repository](https://github.com/victor-gp/cmd-help-sublime-syntax).
 
 
 ## Installation
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/bat-cat.svg)](https://repology.org/project/bat-cat/versions)
+[![Packaging status](https://repology.org/badge/vertical-allrepos/bat-cat.svg?columns=3&exclude_unsupported=1)](https://repology.org/project/bat-cat/versions)
 
 ### On Ubuntu (using `apt`)
 *... and other Debian-based Linux distributions.*
@@ -275,7 +302,7 @@ apk add bat
 
 ### On Arch Linux
 
-You can install [the `bat` package](https://www.archlinux.org/packages/community/x86_64/bat/)
+You can install [the `bat` package](https://www.archlinux.org/packages/extra/x86_64/bat/)
 from the official sources:
 
 ```bash
@@ -352,6 +379,14 @@ You can install `bat` using the [nix package manager](https://nixos.org/nix):
 nix-env -i bat
 ```
 
+### Via flox
+
+You can install `bat` using [Flox](https://flox.dev)
+
+```bash
+flox install bat
+```
+
 ### On openSUSE
 
 You can install `bat` with zypper:
@@ -367,7 +402,7 @@ Existing packages may be available, but are not officially supported and may con
 
 ### On macOS (or Linux) via Homebrew
 
-You can install `bat` with [Homebrew on MacOS](https://formulae.brew.sh/formula/bat) or [Homebrew on Linux](https://formulae.brew.sh/formula-linux/bat):
+You can install `bat` with [Homebrew](https://formulae.brew.sh/formula/bat):
 
 ```bash
 brew install bat
@@ -389,6 +424,14 @@ take a look at the ["Using `bat` on Windows"](#using-bat-on-windows) section.
 #### Prerequisites
 
 You will need to install the [Visual C++ Redistributable](https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads) package.
+
+#### With WinGet
+
+You can install `bat` via [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget):
+
+```bash
+winget install sharkdp.bat
+```
 
 #### With Chocolatey
 
@@ -418,7 +461,7 @@ binaries are also available: look for archives with `musl` in the file name.
 
 ### From source
 
-If you want to build `bat` from source, you need Rust 1.51 or
+If you want to build `bat` from source, you need Rust 1.74.0 or
 higher. You can then use `cargo` to build everything:
 
 ```bash
@@ -427,6 +470,12 @@ cargo install --locked bat
 
 Note that additional files like the man page or shell completion
 files can not be installed in this way. They will be generated by `cargo` and should be available in the cargo target folder (under `build`).
+
+Shell completions are also available by running:
+```bash
+bat --completion <shell>
+# see --help for supported shells
+```
 
 ## Customization
 
@@ -445,8 +494,10 @@ the following command (you need [`fzf`](https://github.com/junegunn/fzf) for thi
 bat --list-themes | fzf --preview="bat --theme={} --color=always /path/to/file"
 ```
 
-`bat` looks good on a dark background by default. However, if your terminal uses a
-light background, some themes like `GitHub` or `OneHalfLight` will work better for you.
+`bat` automatically picks a fitting theme depending on your terminal's background color.
+You can use the `--theme-dark` / `--theme-light` options or the `BAT_THEME_DARK` / `BAT_THEME_LIGHT` environment variables
+to customize the themes used. This is especially useful if you frequently switch between dark and light mode.
+
 You can also use a custom theme by following the
 ['Adding new themes' section below](https://github.com/sharkdp/bat#adding-new-themes).
 
@@ -477,6 +528,16 @@ You can use `--style=numbers,changes`, for example, to show only Git changes
 and line numbers but no grid and no file header. Set the `BAT_STYLE` environment
 variable to make these changes permanent or use `bat`s
 [configuration file](https://github.com/sharkdp/bat#configuration-file).
+
+>[!tip]
+> If you specify a default style in `bat`'s config file, you can change which components
+> are displayed during a single run of `bat` using the `--style` command-line argument.
+> By prefixing a component with `+` or `-`, it can be added or removed from the current style.
+>
+> For example, if your config contains `--style=full,-snip`, you can run bat with
+> `--style=-grid,+snip` to remove the grid and add back the `snip` component.
+> Or, if you want to override the styles completely, you use `--style=numbers` to
+> only show the line numbers.
 
 ### Adding new syntaxes / language definitions
 
@@ -573,7 +634,8 @@ set, `less` is used by default. If you want to use a different pager, you can ei
 `PAGER` variable or set the `BAT_PAGER` environment variable to override what is specified in
 `PAGER`.
 
-**Note**: If `PAGER` is `more` or `most`, `bat` will silently use `less` instead to ensure support for colors.
+>[!NOTE]
+> If `PAGER` is `more` or `most`, `bat` will silently use `less` instead to ensure support for colors.
 
 If you want to pass command-line arguments to the pager, you can also set them via the
 `PAGER`/`BAT_PAGER` variables:
@@ -584,20 +646,37 @@ export BAT_PAGER="less -RF"
 
 Instead of using environment variables, you can also use `bat`s [configuration file](https://github.com/sharkdp/bat#configuration-file) to configure the pager (`--pager` option).
 
-**Note**: By default, if the pager is set to `less` (and no command-line options are specified),
-`bat` will pass the following command line options to the pager: `-R`/`--RAW-CONTROL-CHARS`,
-`-F`/`--quit-if-one-screen` and `-X`/`--no-init`. The last option (`-X`) is only used for `less`
-versions older than 530.
 
-The `-R` option is needed to interpret ANSI colors correctly. The second option (`-F`) instructs
-less to exit immediately if the output size is smaller than the vertical size of the terminal.
-This is convenient for small files because you do not have to press `q` to quit the pager. The
-third option (`-X`) is needed to fix a bug with the `--quit-if-one-screen` feature in old versions
-of `less`. Unfortunately, it also breaks mouse-wheel support in `less`.
+### Using `less` as a pager
 
-If you want to enable mouse-wheel scrolling on older versions of `less`, you can pass just `-R` (as
-in the example above, this will disable the quit-if-one-screen feature). For less 530 or newer,
-it should work out of the box.
+When using `less` as a pager, `bat` will automatically pass extra options along to `less`
+to improve the experience. Specifically, `-R`/`--RAW-CONTROL-CHARS`, `-F`/`--quit-if-one-screen`,
+and under certain conditions, `-X`/`--no-init` and/or `-S`/`--chop-long-lines`.
+
+>[!IMPORTANT]
+> These options will not be added if:
+> - The pager is not named `less`.
+> - The `--pager` argument contains any command-line arguments (e.g. `--pager="less -R"`).
+> - The `BAT_PAGER` environment variable contains any command-line arguments (e.g. `export BAT_PAGER="less -R"`)
+>
+> The `--quit-if-one-screen` option will not be added when:
+> - The `--paging=always` argument is used.
+> - The `BAT_PAGING` environment is set to `always`.
+
+The `-R` option is needed to interpret ANSI colors correctly.
+
+The `-F` option instructs `less` to exit immediately if the output size is smaller than
+the vertical size of the terminal. This is convenient for small files because you do not
+have to press `q` to quit the pager.
+
+The `-X` option is needed to fix a bug with the `--quit-if-one-screen` feature in versions
+of `less` older than version 530. Unfortunately, it also breaks mouse-wheel support in `less`.
+If you want to enable mouse-wheel scrolling on older versions of `less` and do not mind losing
+the quit-if-one-screen feature, you can set the pager (via `--pager` or `BAT_PAGER`) to `less -R`.
+For `less` 530 or newer, it should work out of the box.
+
+The `-S` option is added when `bat`'s `-S`/`--chop-long-lines` option is used. This tells `less`
+to truncate any lines larger than the terminal width.
 
 ### Indentation
 
@@ -628,16 +707,21 @@ on your operating system. To get the default path for your system, call
 bat --config-file
 ```
 
-Alternatively, you can use the `BAT_CONFIG_PATH` environment variable to point `bat` to a
-non-default location of the configuration file:
+Alternatively, you can use `BAT_CONFIG_PATH` or `BAT_CONFIG_DIR` environment variables to point `bat`
+to a non-default location of the configuration file or the configuration directory respectively:
 ```bash
-export BAT_CONFIG_PATH="/path/to/bat.conf"
+export BAT_CONFIG_PATH="/path/to/bat/bat.conf"
+export BAT_CONFIG_DIR="/path/to/bat"
 ```
 
 A default configuration file can be created with the `--generate-config-file` option.
 ```bash
 bat --generate-config-file
 ```
+
+There is also now a systemwide configuration file, which is located under `/etc/bat/config` on
+Linux and Mac OS and `C:\ProgramData\bat\config` on windows. If the system wide configuration
+file is present, the content of the user configuration will simply be appended to it.
 
 ### Format
 
@@ -678,11 +762,9 @@ your `PATH` or [define an environment variable](#using-a-different-pager). The [
 Windows 10 natively supports colors in both `conhost.exe` (Command Prompt) and PowerShell since
 [v1511](https://en.wikipedia.org/wiki/Windows_10_version_history#Version_1511_(November_Update)), as
 well as in newer versions of bash. On earlier versions of Windows, you can use
-[Cmder](http://cmder.net/), which includes [ConEmu](https://conemu.github.io/).
+[Cmder](http://cmder.app/), which includes [ConEmu](https://conemu.github.io/).
 
-**Note:** The Git and MSYS versions of `less` do not correctly interpret colors on Windows. If you
-don’t have any other pagers installed, you can disable paging entirely by passing `--paging=never`
-or by setting `BAT_PAGER` to an empty string.
+**Note:** Old versions of `less` do not correctly interpret colors on Windows. To fix this, you can add the optional Unix tools to your PATH when installing Git. If you don’t have any other pagers installed, you can disable paging entirely by passing `--paging=never` or by setting `BAT_PAGER` to an empty string.
 
 ### Cygwin
 
@@ -710,8 +792,13 @@ bat() {
 
 If an input file contains color codes or other ANSI escape sequences or control characters, `bat` will have problems
 performing syntax highlighting and text wrapping, and thus the output can become garbled.
-When displaying such files it is recommended to disable both syntax highlighting and wrapping by
+
+If your version of `bat` supports the `--strip-ansi=auto` option, it can be used to remove such sequences
+before syntax highlighting. Alternatively, you may disable both syntax highlighting and wrapping by
 passing the `--color=never --wrap=never` options to `bat`.
+
+> [!NOTE]
+> The `auto` option of `--strip-ansi` avoids removing escape sequences when the syntax is plain text.
 
 ### Terminals & colors
 
@@ -797,7 +884,7 @@ There are a lot of alternatives, if you are looking for similar programs. See
 [this document](doc/alternatives.md) for a comparison.
 
 ## License
-Copyright (c) 2018-2021 [bat-developers](https://github.com/sharkdp/bat).
+Copyright (c) 2018-2023 [bat-developers](https://github.com/sharkdp/bat).
 
 `bat` is made available under the terms of either the MIT License or the Apache License 2.0, at your option.
 

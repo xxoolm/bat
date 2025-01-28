@@ -1,4 +1,4 @@
-/// A simple program that prints its own source code using the bat library
+/// A simple program that lists all supported syntaxes and themes.
 use bat::PrettyPrinter;
 
 fn main() {
@@ -13,6 +13,6 @@ fn main() {
 
     println!("Themes:");
     for theme in printer.themes() {
-        println!("- {}", theme);
+        println!("- {theme}");
     }
 }

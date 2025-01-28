@@ -34,7 +34,10 @@ mod diff;
 pub mod error;
 pub mod input;
 mod less;
+#[cfg(feature = "lessopen")]
+mod lessopen;
 pub mod line_range;
+pub(crate) mod nonprintable_notation;
 mod output;
 #[cfg(feature = "paging")]
 mod pager;
@@ -46,10 +49,13 @@ pub(crate) mod printer;
 pub mod style;
 pub(crate) mod syntax_mapping;
 mod terminal;
+pub mod theme;
 mod vscreen;
 pub(crate) mod wrapping;
 
-pub use pretty_printer::{Input, PrettyPrinter};
+pub use nonprintable_notation::{BinaryBehavior, NonprintableNotation};
+pub use preprocessor::StripAnsiMode;
+pub use pretty_printer::{Input, PrettyPrinter, Syntax};
 pub use syntax_mapping::{MappingTarget, SyntaxMapping};
 pub use wrapping::WrappingMode;
 
